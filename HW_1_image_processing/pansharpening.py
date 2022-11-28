@@ -199,7 +199,7 @@ def pansharpen(rgb_img, bw_img, align_method='affine', pansharp_method='hsv', **
     return rgb_img_res_sharp, bw_img
 
 
-def _pansharpen(rgb_im, bw_im, method='hsv', W=0.1):
+def _pansharpen(rgb_im, bw_im, method='hsv'):
     rgb_new = rgb_im.copy()
 
     R = rgb_im[:, :, 0]
