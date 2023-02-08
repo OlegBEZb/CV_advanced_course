@@ -73,7 +73,7 @@ def train_nn(model, train_loader, val_dataloader, optimizer, es, device, epochs=
             total_loss = total_loss + loss.item()
             total_correct = total_correct + predictions.argmax(dim=1).eq(labels).sum().item()
 
-        val_preds, val_labels = get_preds(model, val_dataloader)
+        val_preds, val_labels = get_preds(model=model, val_dataloader=val_dataloader, device=device)
         # print('val types', val_preds, val_labels)
         val_loss = F.cross_entropy(val_preds, val_labels).item()
         f1_val = eval_clf(y_test=val_labels.cpu().numpy(), y_pred=val_preds.argmax(dim=1).cpu().numpy())
