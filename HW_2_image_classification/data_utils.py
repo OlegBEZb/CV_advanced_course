@@ -11,19 +11,22 @@ import math
 
 class IntelImageDataset(Dataset):
     def __init__(self, img_dir, transform=None, target_transform=None,
-                 mode='train', load_on_fly=True):
+                 mode='train', load_on_fly=True, reduced_num=None):
         self.img_dir = img_dir
         self.transform = transform
         self.target_transform = target_transform
         self.load_on_fly = load_on_fly
+        self.reduced_num = reduced_num
 
         self.classes = [c for c in os.listdir(self.img_dir) if not c.startswith('.')]
         self.file_paths = []
         self.img_labels = []
-        for c in tqdm(self.classes, total=len(self.classes)):
+        for c in tqdm(self.classes, total=len(self.classes), mininterval=10):
             folder = os.path.join(self.img_dir, c)
             image_names = os.listdir(folder)
             image_paths = [os.path.join(self.img_dir, c, n) for n in image_names]
+            if self.reduced_num:
+                image_paths = image_paths[: self.reduced_num]
             if not load_on_fly:
                 image_paths = [read_image(path) for path in image_paths]  # returns torch.ByteTensor
 

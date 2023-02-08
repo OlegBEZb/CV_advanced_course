@@ -61,7 +61,7 @@ def train_nn(model, train_loader, val_dataloader, optimizer, es, epochs=5):
     for epoch in tqdm(range(epochs), total=epochs):
         total_loss = 0
         total_correct = 0
-        for batch in tqdm(train_loader):
+        for batch in tqdm(train_loader, mininterval=10):
             images, labels = batch
             images = images.to(device)
             labels = labels.to(device)
@@ -98,13 +98,16 @@ if __name__ == '__main__':
     parser.add_argument('--model', type=str, default='cnn', required=False)
     parser.add_argument('--load_on_fly', action='store_true')
     parser.add_argument('--epochs', type=int, default=5)
+    parser.add_argument('--reduced_num', type=int, required=False)
     args = parser.parse_args()
+    print('received args\n', args)
     train_data_dir = args.train_data_dir
     test_data_dir = args.test_data_dir
     dataset = args.dataset
     val_size = args.val_size
     load_on_fly = args.load_on_fly
     epochs = args.epochs
+    reduced_num = args.reduced_num
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -115,19 +118,22 @@ if __name__ == '__main__':
                                           transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
                                           target_transform=le,
                                           mode='train',
-                                          load_on_fly=load_on_fly)
+                                          load_on_fly=load_on_fly,
+                                          reduced_num=reduced_num)
 
         val_dataset = IntelImageDataset(img_dir=train_data_dir,
                                         transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
                                         target_transform=le,
                                         mode='val',
-                                        load_on_fly=load_on_fly)
+                                        load_on_fly=load_on_fly,
+                                        reduced_num=reduced_num)
 
         test_dataset = IntelImageDataset(img_dir=test_data_dir,
                                          transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
                                          target_transform=train_dataset.target_transform,
                                          mode='test',
-                                         load_on_fly=load_on_fly)
+                                         load_on_fly=load_on_fly,
+                                         reduced_num=reduced_num)
 
         train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
         val_dataloader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
