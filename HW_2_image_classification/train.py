@@ -21,14 +21,12 @@ IMG_WIDTH, IMG_HEIGHT = 150, 150
 
 
 @torch.no_grad()
-def get_preds(model, loader):
+def get_preds(model, loader, device):
     all_preds = torch.tensor([]).to(device)
     all_labels = torch.tensor([])
     for batch in loader:
         images, labels = batch
         images = images.to(device)
-        # delete me
-        images = images.float()
         preds = model(images)
         all_preds = torch.cat((all_preds, preds), dim=0)
         all_labels = torch.cat((all_labels, labels), dim=0)
@@ -56,7 +54,7 @@ class EarlyStopper:
         return False
 
 
-def train_nn(model, train_loader, val_dataloader, optimizer, es, epochs=5):
+def train_nn(model, train_loader, val_dataloader, optimizer, es, device, epochs=5):
     print('>>> Training Start >>>')
     for epoch in tqdm(range(epochs), total=epochs):
         total_loss = 0
@@ -65,8 +63,6 @@ def train_nn(model, train_loader, val_dataloader, optimizer, es, epochs=5):
             images, labels = batch
             images = images.to(device)
             labels = labels.to(device)
-            # delete me
-            images = images.float()
             predictions = model(images)
             # https://discuss.pytorch.org/t/f-cross-entropy-vs-torch-nn-cross-entropy-loss/25505
             # print('train types', predictions, labels)
@@ -87,6 +83,63 @@ def train_nn(model, train_loader, val_dataloader, optimizer, es, epochs=5):
             break
 
     print('>>> Training Complete >>>')
+
+
+def get_dataloaders(train_data_dir, test_data_dir, val_size, transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
+                    transform_test=transforms.Resize([IMG_WIDTH, IMG_HEIGHT])):
+    if dataset == 'custom':
+        le = LabelEncoder()
+
+        train_dataset = IntelImageDataset(img_dir=train_data_dir,
+                                          transform=transform,
+                                          target_transform=le,
+                                          mode='train',
+                                          load_on_fly=load_on_fly,
+                                          reduced_num=reduced_num)
+
+        val_dataset = IntelImageDataset(img_dir=train_data_dir,
+                                        transform=transform,
+                                        target_transform=le,
+                                        mode='val',
+                                        load_on_fly=load_on_fly,
+                                        reduced_num=reduced_num)
+
+        test_dataset = IntelImageDataset(img_dir=test_data_dir,
+                                         transform=transform_test,
+                                         target_transform=train_dataset.target_transform,
+                                         mode='test',
+                                         load_on_fly=load_on_fly,
+                                         reduced_num=reduced_num)
+
+        train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
+        val_dataloader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
+        test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2, pin_memory=True)
+    elif dataset == 'default':
+        # ImageFloder function uses for make dataset by passing dir adderess as an argument
+        # works a bit slower than when all the images are loaded in init. but works great on the fly
+        # TODO: check why native is faster
+
+        # ImageFloder function uses for make dataset by passing dir adderess as an argument
+        train_dataset = datasets.ImageFolder(root=train_data_dir, transform=transform)
+        test_dataset = datasets.ImageFolder(root=test_data_dir, transform=transform_test)
+
+        # Split data into train and validation set
+        num_train = len(train_dataset)
+        indices = list(range(num_train))
+        np.random.shuffle(indices)
+        split = int(np.floor(val_size * num_train))
+        train_idx, valid_idx = indices[split:], indices[:split]
+
+        train_sampler = SubsetRandomSampler(train_idx)
+        valid_sampler = SubsetRandomSampler(valid_idx)
+
+        train_dataloader = DataLoader(train_dataset, batch_size=64, num_workers=2, sampler=train_sampler)
+        val_dataloader = DataLoader(train_dataset, batch_size=64, num_workers=2, sampler=valid_sampler)
+        test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2)
+    else:
+        raise
+
+    return train_dataloader, val_dataloader, test_dataloader
 
 
 if __name__ == '__main__':
@@ -111,79 +164,18 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    if dataset == 'custom':
-        le = LabelEncoder()
-
-        train_dataset = IntelImageDataset(img_dir=train_data_dir,
-                                          transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
-                                          target_transform=le,
-                                          mode='train',
-                                          load_on_fly=load_on_fly,
-                                          reduced_num=reduced_num)
-
-        val_dataset = IntelImageDataset(img_dir=train_data_dir,
-                                        transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
-                                        target_transform=le,
-                                        mode='val',
-                                        load_on_fly=load_on_fly,
-                                        reduced_num=reduced_num)
-
-        test_dataset = IntelImageDataset(img_dir=test_data_dir,
-                                         transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
-                                         target_transform=train_dataset.target_transform,
-                                         mode='test',
-                                         load_on_fly=load_on_fly,
-                                         reduced_num=reduced_num)
-
-        train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
-        val_dataloader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
-        test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2, pin_memory=True)
-    elif dataset == 'default':
-        # ImageFloder function uses for make dataset by passing dir adderess as an argument
-        # works a bit slower than when all the images are loaded in init. but works great on the fly
-        # TODO: check why native is faster
-
-        transform = transforms.Compose([
-            transforms.Resize((IMG_WIDTH, IMG_HEIGHT)),
-            transforms.ToTensor(),
-        ])
-
-        transform_tests = transforms.Compose([
-            transforms.Resize((IMG_WIDTH, IMG_HEIGHT)),
-            transforms.ToTensor(),
-        ])
-
-        # ImageFloder function uses for make dataset by passing dir adderess as an argument
-        train_dataset = datasets.ImageFolder(root=train_data_dir, transform=transform)
-        test_dataset = datasets.ImageFolder(root=test_data_dir, transform=transform_tests)
-
-        # Split data into train and validation set
-        num_train = len(train_dataset)
-        indices = list(range(num_train))
-        np.random.shuffle(indices)
-        split = int(np.floor(val_size * num_train))
-        train_idx, valid_idx = indices[split:], indices[:split]
-
-        train_sampler = SubsetRandomSampler(train_idx)
-        valid_sampler = SubsetRandomSampler(valid_idx)
-
-        train_dataloader = DataLoader(train_dataset, batch_size=64, num_workers=2, sampler=train_sampler)
-        val_dataloader = DataLoader(train_dataset, batch_size=64, num_workers=2, sampler=valid_sampler)
-        test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2)
-    else:
-        raise
-
+    train_dataloader, val_dataloader, test_dataloader = get_dataloaders(train_data_dir=train_data_dir, test_data_dir=test_data_dir, val_size=val_size)
 
     if args.model == 'cnn':
-        model = models.CNN_network(num_classes=len(train_dataset.classes))
+        model = models.CNN_network(num_classes=6)
     elif args.model == 'cnn_mlp':
-        model = models.CNN_MLP_network(num_classes=len(train_dataset.classes))
+        model = models.CNN_MLP_network(num_classes=6)
     else:
         model = torchvision.models.wide_resnet50_2(pretrained=True)
         for param in model.parameters():
             param.required_grad = False
         num_ftrt = model.fc.in_features
-        model.fc = nn.Linear(num_ftrt, len(train_dataset.classes))
+        model.fc = nn.Linear(num_ftrt, 6)
 
     model = model.to(device)
 
