@@ -7,8 +7,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-import torchvision.transforms as transforms
+import torchvision
+from torchvision import transforms
+from torchvision import datasets
 from torch.utils.data import DataLoader
+from torch.utils.data.sampler import SubsetRandomSampler
 
 from data_utils import IntelImageDataset
 import models
@@ -90,6 +93,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--train_data_dir', type=str, default='./', required=True)
     parser.add_argument('--test_data_dir', type=str, default='./', required=True)
+    parser.add_argument('--dataset', type=str, default='default', required=True)
     parser.add_argument('--val_size', type=float, default=0.2, required=True)
     parser.add_argument('--model', type=str, default='cnn', required=False)
     parser.add_argument('--load_on_fly', action='store_true')
@@ -97,43 +101,78 @@ if __name__ == '__main__':
     args = parser.parse_args()
     train_data_dir = args.train_data_dir
     test_data_dir = args.test_data_dir
+    dataset = args.dataset
     val_size = args.val_size
     load_on_fly = args.load_on_fly
     epochs = args.epochs
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    le = LabelEncoder()
+    if dataset == 'custom':
+        le = LabelEncoder()
 
-    train_dataset = IntelImageDataset(img_dir=train_data_dir,
-                                      transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
-                                      target_transform=le,
-                                      mode='train',
-                                      load_on_fly=load_on_fly)
+        train_dataset = IntelImageDataset(img_dir=train_data_dir,
+                                          transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
+                                          target_transform=le,
+                                          mode='train',
+                                          load_on_fly=load_on_fly)
 
-    val_dataset = IntelImageDataset(img_dir=train_data_dir,
-                                    transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
-                                    target_transform=le,
-                                    mode='val',
-                                    load_on_fly=load_on_fly)
+        val_dataset = IntelImageDataset(img_dir=train_data_dir,
+                                        transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
+                                        target_transform=le,
+                                        mode='val',
+                                        load_on_fly=load_on_fly)
 
-    test_dataset = IntelImageDataset(img_dir=test_data_dir,
-                                     transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
-                                     target_transform=train_dataset.target_transform,
-                                     mode='test',
-                                     load_on_fly=load_on_fly)
+        test_dataset = IntelImageDataset(img_dir=test_data_dir,
+                                         transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
+                                         target_transform=train_dataset.target_transform,
+                                         mode='test',
+                                         load_on_fly=load_on_fly)
 
-    train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
-    val_dataloader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2, pin_memory=True)
+        train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
+        val_dataloader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
+        test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2, pin_memory=True)
+    elif dataset == 'default':
+        # ImageFloder function uses for make dataset by passing dir adderess as an argument
+        # works a bit slower than when all the images are loaded in init. but works great on the fly
+        # TODO: check why native is faster
+
+        transform = transforms.Compose([
+            transforms.Resize((IMG_WIDTH, IMG_HEIGHT)),
+            transforms.ToTensor(),
+        ])
+
+        transform_tests = transforms.Compose([
+            transforms.Resize((IMG_WIDTH, IMG_HEIGHT)),
+            transforms.ToTensor(),
+        ])
+
+        # ImageFloder function uses for make dataset by passing dir adderess as an argument
+        train_dataset = datasets.ImageFolder(root=train_data_dir, transform=transform)
+        test_dataset = datasets.ImageFolder(root=test_data_dir, transform=transform_tests)
+
+        # Split data into train and validation set
+        num_train = len(train_dataset)
+        indices = list(range(num_train))
+        np.random.shuffle(indices)
+        split = int(np.floor(val_size * num_train))
+        train_idx, valid_idx = indices[split:], indices[:split]
+
+        train_sampler = SubsetRandomSampler(train_idx)
+        valid_sampler = SubsetRandomSampler(valid_idx)
+
+        train_dataloader = DataLoader(train_dataset, batch_size=64, num_workers=2, sampler=train_sampler)
+        val_dataloader = DataLoader(train_dataset, batch_size=64, num_workers=2, sampler=valid_sampler)
+        test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2)
+    else:
+        raise
+
 
     if args.model == 'cnn':
         model = models.CNN_network(num_classes=len(train_dataset.classes))
     elif args.model == 'cnn_mlp':
         model = models.CNN_MLP_network(num_classes=len(train_dataset.classes))
     else:
-        import torchvision
-
         model = torchvision.models.wide_resnet50_2(pretrained=True)
         for param in model.parameters():
             param.required_grad = False
