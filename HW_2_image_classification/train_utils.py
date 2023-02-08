@@ -87,7 +87,8 @@ def train_nn(model, train_loader, val_dataloader, optimizer, es, device, epochs=
 
 def get_dataloaders(train_data_dir, test_data_dir, val_size=0.2, dataset='default',
                     transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
-                    transform_test=transforms.Resize([IMG_WIDTH, IMG_HEIGHT])):
+                    transform_test=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
+                    load_on_fly=False, reduced_num=None):
     if dataset == 'custom':
         le = LabelEncoder()
 
@@ -166,12 +167,15 @@ if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(train_data_dir=train_data_dir,
-                                                                        test_data_dir=test_data_dir, val_size=val_size,
-                                                                        val_size=0.2, dataset='default',
+                                                                        test_data_dir=test_data_dir,
+                                                                        val_size=val_size,
+                                                                        dataset='default',
                                                                         transform=transforms.Resize(
                                                                             [IMG_WIDTH, IMG_HEIGHT]),
                                                                         transform_test=transforms.Resize(
-                                                                            [IMG_WIDTH, IMG_HEIGHT]))
+                                                                            [IMG_WIDTH, IMG_HEIGHT]),
+                                                                        load_on_fly=load_on_fly,
+                                                                        reduced_num=reduced_num)
 
     num_classes = len(train_dataloader.dataset.classes)
 
