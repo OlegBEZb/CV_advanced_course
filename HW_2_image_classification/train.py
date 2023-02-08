@@ -1,6 +1,6 @@
 import argparse
 import numpy as np
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from sklearn.preprocessing import LabelEncoder
 
 import torch
@@ -53,9 +53,9 @@ class EarlyStopper:
         return False
 
 
-def train_nn(model, train_loader, val_dataloader, optimizer, es):
+def train_nn(model, train_loader, val_dataloader, optimizer, es, epochs=5):
     print('>>> Training Start >>>')
-    for epoch in tqdm(range(30), total=30):
+    for epoch in tqdm(range(epochs), total=epochs):
         total_loss = 0
         total_correct = 0
         for batch in tqdm(train_loader):
@@ -76,7 +76,7 @@ def train_nn(model, train_loader, val_dataloader, optimizer, es):
 
         val_preds, val_labels = get_preds(model, val_dataloader)
         # print('val types', val_preds, val_labels)
-        val_loss = F.cross_entropy(val_preds, val_labels)
+        val_loss = F.cross_entropy(val_preds, val_labels).item()
         f1_val = eval_clf(y_test=val_labels.cpu().numpy(), y_pred=val_preds.argmax(dim=1).cpu().numpy())
         print('epoch:', epoch, "train_loss:", total_loss, 'val_loss:', val_loss, 'val f1:', f1_val)
 
@@ -93,11 +93,13 @@ if __name__ == '__main__':
     parser.add_argument('--val_size', type=float, default=0.2, required=True)
     parser.add_argument('--model', type=str, default='cnn', required=False)
     parser.add_argument('--load_on_fly', action='store_true')
+    parser.add_argument('--epochs', type=int, default=5)
     args = parser.parse_args()
     train_data_dir = args.train_data_dir
     test_data_dir = args.test_data_dir
     val_size = args.val_size
     load_on_fly = args.load_on_fly
+    epochs = args.epochs
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -142,4 +144,4 @@ if __name__ == '__main__':
 
     early_stopper = EarlyStopper(patience=3)
     optimizer = optim.SGD(model.parameters(), lr=0.0001, momentum=0.9)
-    train_nn(model, train_dataloader, val_dataloader, optimizer, early_stopper)
+    train_nn(model, train_dataloader, val_dataloader, optimizer, early_stopper, epochs=epochs)
