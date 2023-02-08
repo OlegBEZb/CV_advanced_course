@@ -85,7 +85,8 @@ def train_nn(model, train_loader, val_dataloader, optimizer, es, device, epochs=
     print('>>> Training Complete >>>')
 
 
-def get_dataloaders(train_data_dir, test_data_dir, val_size, transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
+def get_dataloaders(train_data_dir, test_data_dir, val_size=0.2, dataset='default',
+                    transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
                     transform_test=transforms.Resize([IMG_WIDTH, IMG_HEIGHT])):
     if dataset == 'custom':
         le = LabelEncoder()
@@ -164,18 +165,26 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    train_dataloader, val_dataloader, test_dataloader = get_dataloaders(train_data_dir=train_data_dir, test_data_dir=test_data_dir, val_size=val_size)
+    train_dataloader, val_dataloader, test_dataloader = get_dataloaders(train_data_dir=train_data_dir,
+                                                                        test_data_dir=test_data_dir, val_size=val_size,
+                                                                        val_size=0.2, dataset='default',
+                                                                        transform=transforms.Resize(
+                                                                            [IMG_WIDTH, IMG_HEIGHT]),
+                                                                        transform_test=transforms.Resize(
+                                                                            [IMG_WIDTH, IMG_HEIGHT]))
+
+    num_classes = len(train_dataloader.dataset.classes)
 
     if args.model == 'cnn':
-        model = models.CNN_network(num_classes=6)
+        model = models.CNN_network(num_classes=num_classes)
     elif args.model == 'cnn_mlp':
-        model = models.CNN_MLP_network(num_classes=6)
+        model = models.CNN_MLP_network(num_classes=num_classes)
     else:
         model = torchvision.models.wide_resnet50_2(pretrained=True)
         for param in model.parameters():
             param.required_grad = False
         num_ftrt = model.fc.in_features
-        model.fc = nn.Linear(num_ftrt, 6)
+        model.fc = nn.Linear(num_ftrt, num_classes)
 
     model = model.to(device)
 
