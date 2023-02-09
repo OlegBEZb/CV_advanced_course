@@ -13,6 +13,8 @@ from torchvision import datasets
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
+import imgaug
+
 from data_utils import IntelImageDataset
 import models
 from eval import eval_clf
@@ -85,6 +87,10 @@ def train_nn(model, train_loader, val_dataloader, optimizer, es, device, epochs=
     print('>>> Training Complete >>>')
 
 
+def worker_init_fn(worker_id):
+    imgaug.seed(np.random.get_state()[1][0] + worker_id)
+
+
 def get_dataloaders(train_data_dir, test_data_dir, val_size=0.2, dataset='default',
                     transform=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
                     transform_test=transforms.Resize([IMG_WIDTH, IMG_HEIGHT]),
@@ -113,9 +119,12 @@ def get_dataloaders(train_data_dir, test_data_dir, val_size=0.2, dataset='defaul
                                          load_on_fly=load_on_fly,
                                          reduced_num=reduced_num)
 
-        train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
-        val_dataloader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True)
-        test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2, pin_memory=True)
+        train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True,
+                                      worker_init_fn=worker_init_fn)
+        val_dataloader = DataLoader(val_dataset, batch_size=64, shuffle=True, num_workers=2, pin_memory=True,
+                                    worker_init_fn=worker_init_fn)
+        test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2, pin_memory=True,
+                                     worker_init_fn=worker_init_fn)
     elif dataset == 'default':
         # ImageFloder function uses for make dataset by passing dir adderess as an argument
         # works a bit slower than when all the images are loaded in init. but works great on the fly
@@ -135,9 +144,12 @@ def get_dataloaders(train_data_dir, test_data_dir, val_size=0.2, dataset='defaul
         train_sampler = SubsetRandomSampler(train_idx)
         valid_sampler = SubsetRandomSampler(valid_idx)
 
-        train_dataloader = DataLoader(train_dataset, batch_size=64, num_workers=2, sampler=train_sampler)
-        val_dataloader = DataLoader(train_dataset, batch_size=64, num_workers=2, sampler=valid_sampler)
-        test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2)
+        train_dataloader = DataLoader(train_dataset, batch_size=64, num_workers=2, sampler=train_sampler,
+                                      worker_init_fn=worker_init_fn)
+        val_dataloader = DataLoader(train_dataset, batch_size=64, num_workers=2, sampler=valid_sampler,
+                                    worker_init_fn=worker_init_fn)
+        test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2,
+                                     worker_init_fn=worker_init_fn)
     else:
         raise
 
