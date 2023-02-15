@@ -2,6 +2,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+# TODO: add some preprocessing to the graph. For example, resize func
+
+
 class CNN_MLP_network(nn.Module):
     def __init__(self, num_classes):
         super().__init__()

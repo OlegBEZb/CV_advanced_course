@@ -1,8 +1,7 @@
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from sklearn.metrics import (f1_score, classification_report, confusion_matrix,
-                             ConfusionMatrixDisplay)
+from sklearn.metrics import f1_score, classification_report, confusion_matrix, ConfusionMatrixDisplay
 
 
 def eval_clf(y_test, y_pred, disp=0):

@@ -67,7 +67,6 @@ def train_nn(model, train_loader, val_dataloader, optimizer, es, device, epochs=
             labels = labels.to(device)
             predictions = model(images)
             # https://discuss.pytorch.org/t/f-cross-entropy-vs-torch-nn-cross-entropy-loss/25505
-            # print('train types', predictions, labels)
             loss = F.cross_entropy(predictions, labels)
             optimizer.zero_grad()
             loss.backward()
@@ -76,7 +75,6 @@ def train_nn(model, train_loader, val_dataloader, optimizer, es, device, epochs=
             total_correct = total_correct + predictions.argmax(dim=1).eq(labels).sum().item()
 
         val_preds, val_labels = get_preds(model=model, loader=val_dataloader, device=device)
-        # print('val types', val_preds, val_labels)
         val_loss = F.cross_entropy(val_preds, val_labels).item()
         f1_val = eval_clf(y_test=val_labels.cpu().numpy(), y_pred=val_preds.argmax(dim=1).cpu().numpy())
         print('epoch:', epoch, "train_loss:", total_loss, 'val_loss:', val_loss, 'val f1:', f1_val)
@@ -126,11 +124,11 @@ def get_dataloaders(train_data_dir, test_data_dir, val_size=0.2, dataset='defaul
         test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2, pin_memory=True,
                                      worker_init_fn=worker_init_fn)
     elif dataset == 'default':
-        # ImageFloder function uses for make dataset by passing dir adderess as an argument
+        # ImageFloder function uses for make dataset by passing dir address as an argument
         # works a bit slower than when all the images are loaded in init. but works great on the fly
         # TODO: check why native is faster
 
-        # ImageFloder function uses for make dataset by passing dir adderess as an argument
+        # ImageFloder function uses for make dataset by passing dir address as an argument
         train_dataset = datasets.ImageFolder(root=train_data_dir, transform=transform)
         test_dataset = datasets.ImageFolder(root=test_data_dir, transform=transform_test)
 
