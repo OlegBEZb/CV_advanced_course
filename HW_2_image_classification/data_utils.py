@@ -1,12 +1,14 @@
 import os
 from tqdm import tqdm
 import numpy as np
+import math
 
 import torch
 from torch.utils.data import Dataset
 from torchvision.io import read_image
 
-import math
+from albumentations.core.composition import Compose
+
 
 
 class IntelImageDataset(Dataset):
@@ -53,7 +55,10 @@ class IntelImageDataset(Dataset):
 
         label = self.img_labels[idx]
         if self.transform:
-            image = self.transform(image)
+            if isinstance(self.transform, Compose):
+                image = self.transform(image=image.numpy)
+            else:
+                image = self.transform(image)
         if self.target_transform:
             label = torch.tensor(self.target_transform.transform([label]))[0]
         return image, label
