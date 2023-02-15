@@ -56,7 +56,7 @@ class IntelImageDataset(Dataset):
         label = self.img_labels[idx]
         if self.transform:
             if isinstance(self.transform, Compose):
-                image = self.transform(image=image.numpy())
+                image = self.transform(image=image.numpy().transpose(1, 2, 0))['image']
             else:
                 image = self.transform(image)
         if self.target_transform:

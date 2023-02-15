@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.transforms as transforms
 
 
 # TODO: add some preprocessing to the graph. For example, resize func
@@ -8,6 +9,8 @@ import torch.nn.functional as F
 class CNN_MLP_network(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
+
+        self.resize = transforms.Resize((150, 150))
 
         self.num_classes = num_classes
 
@@ -27,6 +30,7 @@ class CNN_MLP_network(nn.Module):
         self.out = nn.Linear(in_features=84, out_features=self.num_classes)
 
     def forward(self, t):
+        t = self.resize(t)
         #Layer 1
         t = t.float()  # 150, 150, 3
         #Layer 2
