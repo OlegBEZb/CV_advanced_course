@@ -10,8 +10,6 @@ class CNN_MLP_network(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
 
-        self.resize = transforms.Resize((150, 150))
-
         self.num_classes = num_classes
 
         # CNN part
@@ -30,7 +28,6 @@ class CNN_MLP_network(nn.Module):
         self.out = nn.Linear(in_features=84, out_features=self.num_classes)
 
     def forward(self, t):
-        t = self.resize(t)
         #Layer 1
         t = t.float()  # 150, 150, 3
         #Layer 2
