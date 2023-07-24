@@ -6,3 +6,8 @@
 *__pycache__/
 
 *.ipynb_checkpoints/
+
+# heavy datasets
+HW_1_image_processing/calibration_data
+HW_2_image_classification/Classification_data
+HW_3_object_detection/dolls_all_in_one
