@@ -37,6 +37,8 @@ bash ./serverless/deploy_cpu.sh serverless/pytorch/facebookresearch/sam/nuclio/
     1. Evaluate on existing bboxes
         1. any doll is the target
         2. every original class (barbie, bratz) is the goal
+        3. apply NMS for multiple predictions per one class
+        4. match multiple dolls (check MAP metric)
 4. Few-shot?
 5. Consider distilling (probably, with fine-tuning) DINO to YOLO: https://github.com/autodistill/autodistill
 6. fine-tune YOLO v5 or v7 on bbox
