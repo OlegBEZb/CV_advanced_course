@@ -35,10 +35,12 @@ bash ./serverless/deploy_cpu.sh serverless/pytorch/facebookresearch/sam/nuclio/
 2. It was decided to annotate the project in the CVAT with an optional help of SAM to speed up the annotation and increase the quality of it. About 50 images is enough to check the pipeline and formats.
 3. Try zero-shot: https://blog.roboflow.com/grounding-dino-zero-shot-object-detection/
     1. Evaluate on existing bboxes
+    https://github.com/cocodataset/cocoapi/blob/master/PythonAPI/pycocoEvalDemo.ipynb
+    для этого просто детекции в coco формате сохрани: https://cocodataset.org/#format-results
         1. any doll is the target
         2. every original class (barbie, bratz) is the goal
         3. apply NMS for multiple predictions per one class
-        4. match multiple dolls (check MAP metric)
+        4. match multiple dolls (check MAP metric) https://docs.voxel51.com/integrations/coco.html
 4. Few-shot?
 5. Consider distilling (probably, with fine-tuning) DINO to YOLO: https://github.com/autodistill/autodistill
 6. fine-tune YOLO v5 or v7 on bbox
