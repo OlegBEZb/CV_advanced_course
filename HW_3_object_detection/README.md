@@ -31,7 +31,7 @@ bash ./serverless/deploy_cpu.sh serverless/pytorch/facebookresearch/sam/nuclio/
 1. https://telegra.ph/Razmechaem-dannye-Bystro-nedorogo-12-27
 
 # Project roadmap:
-1. Define labels of interest. It was decided to take doll brands as the main goal of  the task. The specificity of the task is that they have various of different accecories so that the same doll may be in very different clother and with different items weared on. Here we don't take accecories into account and just ignore them during the annotation process. However, clothes which are close to body are important and are annotated together with the dolls themselves.
+1. Define labels of interest. It was decided to take doll brands as the main goal of the task. The specificity of the task is that they have various of different accecories so that the same doll may be in very different clother and with different items weared on. Here we don't take accecories into account and just ignore them during the annotation process. However, clothes which are close to body are important and are annotated together with the dolls themselves.
 2. It was decided to annotate the project in the CVAT with an optional help of SAM to speed up the annotation and increase the quality of it. About 50 images is enough to check the pipeline and formats.
 3. Try zero-shot: https://blog.roboflow.com/grounding-dino-zero-shot-object-detection/
     1. Evaluate on existing bboxes
